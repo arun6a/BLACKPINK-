@@ -2,22 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BLINK Random Player</title>
     <style>
-        :root { --pink: #ff007f; --black: #000; --card: #121212; }
-        body { font-family: -apple-system, sans-serif; background: var(--black); color: white; margin: 0; padding: 0; }
-        header { padding: 15px; text-align: center; border-bottom: 2px solid var(--pink); }
-        #logo { width: 60px; cursor: pointer; }
-        .player-box { width: 100%; aspect-ratio: 16/9; background: #000; border-bottom: 1px solid #333; }
+        :root { --pink: #ff007f; --black: #000; --card: #121212; --text: #ffffff; }
+        body { font-family: -apple-system, sans-serif; background: var(--black); color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
+        
+        /* Stealth Header */
+        header { padding: 15px; display: flex; justify-content: center; border-bottom: 2px solid var(--pink); background: #000; }
+        #logo { width: 60px; cursor: pointer; transition: transform 0.1s; filter: drop-shadow(0 0 5px var(--pink)); }
+        #logo:active { transform: scale(0.9); }
+
+        /* Video Section */
+        .player-box { width: 100%; aspect-ratio: 16/9; background: #000; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #333; }
         iframe { width: 100%; height: 100%; border: none; }
-        .main-btn { background: var(--pink); color: white; border: none; padding: 15px; width: 90%; margin: 20px 5%; border-radius: 30px; font-weight: bold; font-size: 1rem; }
-        .list-container { padding: 15px; }
-        .item { background: var(--card); padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--pink); }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; }
-        .modal-content { background: #222; width: 85%; padding: 20px; border-radius: 15px; border: 1px solid var(--pink); }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; color: white; border: 1px solid #444; box-sizing: border-box; border-radius: 8px; }
-        .fab { position: fixed; bottom: 25px; right: 25px; background: var(--pink); width: 60px; height: 60px; border-radius: 50%; border: none; color: white; font-size: 30px; }
+
+        /* Controls */
+        .main-btn { background: var(--pink); color: white; border: none; padding: 16px; width: 90%; margin: 20px 5%; border-radius: 30px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 0, 127, 0.4); }
+        
+        /* Playlist List */
+        .list-container { padding: 15px; padding-bottom: 100px; }
+        .list-header { color: var(--pink); border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 15px; display: flex; justify-content: space-between; }
+        .item { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--pink); }
+        .item-info h4 { margin: 0; font-size: 0.95rem; }
+        .play-icon { background: #222; color: var(--pink); border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: #1a1a1a; width: 85%; padding: 25px; border-radius: 20px; border: 1px solid var(--pink); text-align: center; }
+        input { width: 100%; padding: 14px; margin: 10px 0; background: #000; color: white; border: 1px solid #444; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
+        
+        /* Floating Add Button */
+        .fab { position: fixed; bottom: 25px; right: 25px; background: var(--pink); width: 65px; height: 65px; border-radius: 50%; border: none; color: white; font-size: 35px; box-shadow: 0 4px 20px rgba(0,0,0,0.8); z-index: 99; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -32,73 +48,76 @@
 
 <button class="main-btn" onclick="playRandom()">🔀 RANDOM PLAY ALL</button>
 
-<div class="list-container" id="display-list"></div>
+<div class="list-container">
+    <div class="list-header"><span>Official & My Playlist</span><small id="count">0 items</small></div>
+    <div id="display-list"></div>
+</div>
 
-<button class="fab" onclick="document.getElementById('userModal').style.display='flex'">+</button>
+<button class="fab" onclick="openModal('userModal')">+</button>
 
 <div id="userModal" class="modal">
     <div class="modal-content">
-        <h3>Add to My List</h3>
-        <input type="text" id="uName" placeholder="Song Name">
+        <h3 style="color:var(--pink)">Save to My Phone</h3>
+        <input type="text" id="uName" placeholder="Video or Playlist Name">
         <input type="text" id="uUrl" placeholder="Paste YouTube Link">
         <button class="main-btn" onclick="saveLocal()">SAVE LOCALLY</button>
-        <button onclick="closeModals()" style="background:none; color:gray; border:none; width:100%;">Cancel</button>
+        <button onclick="closeModals()" style="background:none; color:#888; border:none; margin-top:10px;">Cancel</button>
     </div>
 </div>
 
 <div id="adminModal" class="modal">
     <div class="modal-content">
         <h3 style="color:var(--pink)">Admin Access</h3>
-        <input type="password" id="adminPass" placeholder="Password">
-        <input type="text" id="aUrl" placeholder="Link for Global Sheet">
-        <button class="main-btn" onclick="sendToCloud()">UPDATE GLOBAL SHEET</button>
-        <button onclick="closeModals()" style="background:none; color:gray; border:none; width:100%;">Close</button>
+        <input type="password" id="adminPass" placeholder="Secret Password">
+        <input type="text" id="aName" placeholder="Official Video Title">
+        <input type="text" id="aUrl" placeholder="YouTube URL">
+        <button class="main-btn" onclick="sendToCloud()">PUSH TO GLOBAL SHEET</button>
+        <button onclick="closeModals()" style="background:none; color:#888; border:none; margin-top:10px;">Close</button>
     </div>
 </div>
 
 <script>
-    // 1. CONFIGURATION
-    const SHEET_CSV = "YOUR_GOOGLE_SHEET_CSV_URL"; // Publish Sheet to web as CSV
-    const APPS_SCRIPT_URL = "YOUR_SCRIPT_URL"; 
+    // --- 1. SETTINGS ---
+    const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0mRZthUSCHV8oLPq-iSBbif7ie0DboVrZTUzWlIDjulZTHdSJEnQOhtOpFuZQQXzBaoAWQNjhAJBt/pub?gid=0&single=true&output=csv";
+    const APPS_SCRIPT_URL = "YOUR_DEPLOYED_APPS_SCRIPT_URL"; // Add your /exec URL here
+    
     let cloudItems = [];
     let clickCount = 0;
 
-    // 2. STEALTH TRIGGER
+    // --- 2. STEALTH LOGIC ---
     function logoTrigger() {
         clickCount++;
         if (clickCount >= 10) {
-            document.getElementById('adminModal').style.display = 'flex';
+            openModal('adminModal');
             clickCount = 0;
         }
+        setTimeout(() => clickCount = 0, 5000); // Reset clicks after 5s
     }
 
-    // 3. UNIVERSAL LINK PARSER
+    // --- 3. LINK HANDLER ---
     function getID(url) {
-        const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|shorts\/|embed\/|v\/))([\w-]{11})/);
-        return match ? match[1] : null;
+        const vMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|shorts\/|embed\/|v\/))([\w-]{11})/);
+        const pMatch = url.match(/[&?]list=([^&]+)/);
+        if (pMatch) return { type: 'playlist', id: pMatch[1] };
+        if (vMatch) return { type: 'video', id: vMatch[1] };
+        return null;
     }
 
-    // 4. PLAYER ENGINE BRIDGE
-    function runVideo(url) {
-        const id = getID(url);
-        if (id) {
-            document.getElementById('main-frame').src = `./player.html?v=${id}&autoplay=1`;
+    function runMedia(url) {
+        const info = getID(url);
+        if (info) {
+            let playerUrl = "";
+            if (info.type === 'playlist') {
+                playerUrl = `https://www.youtube.com/embed?listType=playlist&list=${info.id}&autoplay=1`;
+            } else {
+                playerUrl = `./player.html?v=${info.id}&autoplay=1`;
+            }
+            document.getElementById('main-frame').src = playerUrl;
+            window.scrollTo({top: 0, behavior: 'smooth'});
         }
     }
 
-    // 5. LOCAL STORAGE
-    function saveLocal() {
-        const name = document.getElementById('uName').value;
-        const url = document.getElementById('uUrl').value;
-        if (getID(url) && name) {
-            let list = JSON.parse(localStorage.getItem('bp_local')) || [];
-            list.push({ name, url });
-            localStorage.setItem('bp_local', JSON.stringify(list));
-            closeModals();
-            renderList();
-        }
-    }
-
+    // --- 4. DATA MANAGEMENT ---
     async function syncCloud() {
         try {
             const res = await fetch(SHEET_CSV);
@@ -106,21 +125,67 @@
             const rows = text.split('\n').slice(1);
             cloudItems = rows.map(r => {
                 const parts = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                return { name: parts[0].replace(/"/g, ''), url: parts[1].replace(/"/g, '') };
-            }).filter(i => i.url);
-            renderList();
-        } catch(e) { renderList(); }
+                if(parts.length < 2) return null;
+                return { name: parts[0].replace(/"/g, '').trim(), url: parts[1].replace(/"/g, '').trim() };
+            }).filter(i => i && i.url);
+            renderUI();
+        } catch(e) { renderUI(); }
     }
 
-    function renderList() {
+    function renderUI() {
         const local = JSON.parse(localStorage.getItem('bp_local')) || [];
         const container = document.getElementById('display-list');
-        container.innerHTML = local.map(item => `
+        const countEl = document.getElementById('count');
+        const combined = [...cloudItems, ...local];
+        
+        countEl.innerText = `${combined.length} items`;
+        
+        container.innerHTML = combined.map((item, idx) => `
             <div class="item">
-                <span>${item.name}</span>
-                <button onclick="runVideo('${item.url}')" style="background:#333; color:var(--pink); border:none; border-radius:50%; width:30px; height:30px;">▶</button>
+                <div class="item-info">
+                    <h4>${item.name}</h4>
+                    <small style="color:#666">${getID(item.url)?.type.toUpperCase() || 'LINK'}</small>
+                </div>
+                <button class="play-icon" onclick="runMedia('${item.url}')">▶</button>
             </div>
         `).join('');
+    }
+
+    function saveLocal() {
+        const name = document.getElementById('uName').value;
+        const url = document.getElementById('uUrl').value;
+        if (getID(url) && name) {
+            let list = JSON.parse(localStorage.getItem('bp_local')) || [];
+            list.unshift({ name, url }); // Add to top
+            localStorage.setItem('bp_local', JSON.stringify(list));
+            closeModals();
+            renderUI();
+            document.getElementById('uName').value = '';
+            document.getElementById('uUrl').value = '';
+        } else { alert("Please enter a valid name and YouTube link"); }
+    }
+
+    // --- 5. ADMIN CLOUD PUSH ---
+    async function sendToCloud() {
+        const pass = document.getElementById('adminPass').value;
+        const name = document.getElementById('aName').value;
+        const url = document.getElementById('aUrl').value;
+        
+        if (pass !== "blink") return alert("Wrong Password");
+        if (!getID(url) || !name) return alert("Invalid Input");
+
+        const btn = document.querySelector("#adminModal .main-btn");
+        btn.innerText = "UPLOADING...";
+
+        try {
+            await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ name, url, password: pass })
+            });
+            alert("Sent to Google Sheet! Refreshing...");
+            location.reload();
+        } catch(e) { alert("Error connecting to script."); btn.innerText = "PUSH TO GLOBAL SHEET"; }
     }
 
     function playRandom() {
@@ -128,11 +193,13 @@
         const total = [...cloudItems, ...local];
         if (total.length > 0) {
             const r = total[Math.floor(Math.random() * total.length)];
-            runVideo(r.url);
+            runMedia(r.url);
         }
     }
 
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+    
     window.onload = syncCloud;
 </script>
 </body>
