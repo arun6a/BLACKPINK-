@@ -1,162 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BLINK Random Player</title>
+    <title>BLACKPINK Player Bridge</title>
     <style>
-        :root { --pink: #ff007f; --black: #000; --card: #121212; --text: #ffffff; }
-        body { font-family: -apple-system, sans-serif; background: var(--black); color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
-        
-        header { padding: 15px; display: flex; justify-content: center; border-bottom: 2px solid var(--pink); background: #000; }
-        #logo { width: 60px; cursor: pointer; transition: transform 0.1s; filter: drop-shadow(0 0 5px var(--pink)); }
-        #logo:active { transform: scale(0.9); }
-
-        .player-box { width: 100%; aspect-ratio: 16/9; background: #000; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #333; }
-        iframe { width: 100%; height: 100%; border: none; }
-
-        .main-btn { background: var(--pink); color: white; border: none; padding: 16px; width: 90%; margin: 20px 5%; border-radius: 30px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 0, 127, 0.4); }
-        
-        .list-container { padding: 15px; padding-bottom: 100px; }
-        .list-header { color: var(--pink); border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 15px; display: flex; justify-content: space-between; font-weight: bold; }
-        .item { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--pink); cursor: pointer; }
-        .item-info h4 { margin: 0; font-size: 0.95rem; }
-        .play-icon { background: #222; color: var(--pink); border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: #1a1a1a; width: 85%; padding: 25px; border-radius: 20px; border: 1px solid var(--pink); text-align: center; }
-        input { width: 100%; padding: 14px; margin: 10px 0; background: #000; color: white; border: 1px solid #444; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
-        
-        .fab { position: fixed; bottom: 25px; right: 25px; background: var(--pink); width: 65px; height: 65px; border-radius: 50%; border: none; color: white; font-size: 35px; box-shadow: 0 4px 20px rgba(0,0,0,0.8); z-index: 99; cursor: pointer; }
+        /* Ensures the player fills the entire screen area of the APK's iframe */
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: #000; 
+            overflow: hidden; 
+        }
+        #player { 
+            width: 100%; 
+            height: 100%; 
+        }
     </style>
 </head>
 <body>
+    <div id="player"></div>
 
-<header>
-    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b1/Blackpink_Logo.png" id="logo" onclick="logoTrigger()">
-</header>
+    <script>
+        // 1. Get parameters sent from the APK (e.g., ?v=VIDEO_ID or ?list=PLAYLIST_ID)
+        const urlParams = new URLSearchParams(window.location.search);
+        const videoId = urlParams.get('v');
+        const listId = urlParams.get('list');
 
-<div class="player-box">
-    <iframe id="main-frame" src="about:blank" allow="autoplay; encrypted-media; playsinline" allowfullscreen></iframe>
-</div>
+        // 2. Load the official YouTube IFrame Player API
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-<button class="main-btn" onclick="playRandom()">🔀 RANDOM PLAY FROM ALL</button>
+        // 3. This function runs automatically when the API is ready
+        var player;
+        function onYouTubeIframeAPIReady() {
+            let playerConfig = {
+                height: '100%',
+                width: '100%',
+                playerVars: { 
+                    'autoplay': 1,        // Auto-start the video
+                    'playsinline': 1,     // Keep video inside the app (no full-screen jump)
+                    'rel': 0,             // Don't show related videos from other channels
+                    'modestbranding': 1,  // Hide the YouTube logo as much as possible
+                    'origin': window.location.origin 
+                },
+                events: { 
+                    'onReady': onPlayerReady,
+                    'onError': onPlayerError
+                }
+            };
 
-<div class="list-container">
-    <div class="list-header"><span>Song Library</span><small id="count">0 items</small></div>
-    <div id="display-list"></div>
-</div>
+            // 4. Determine if we are playing a single video or a playlist
+            if (listId) {
+                playerConfig.playerVars.listType = 'playlist';
+                playerConfig.playerVars.list = listId;
+            } else if (videoId) {
+                playerConfig.videoId = videoId;
+            } else {
+                console.error("No Video or Playlist ID provided.");
+                return;
+            }
 
-<button class="fab" onclick="openModal('userModal')">+</button>
-
-<div id="userModal" class="modal">
-    <div class="modal-content">
-        <h3 style="color:var(--pink)">Add to My App</h3>
-        <input type="text" id="uName" placeholder="Name">
-        <input type="text" id="uUrl" placeholder="YouTube Link">
-        <button class="main-btn" onclick="saveLocal()">SAVE TO MY LIST</button>
-        <button onclick="closeModals()" style="background:none; color:#888; border:none; margin-top:10px;">Cancel</button>
-    </div>
-</div>
-
-<div id="adminModal" class="modal">
-    <div class="modal-content">
-        <h3 style="color:var(--pink)">Admin Access</h3>
-        <input type="password" id="adminPass" placeholder="Secret Password">
-        <input type="text" id="aName" placeholder="Official Song Name">
-        <input type="text" id="aUrl" placeholder="YouTube URL">
-        <button class="main-btn" onclick="sendToCloud()">PUSH TO GLOBAL SHEET</button>
-        <button onclick="closeModals()" style="background:none; color:#888; border:none; margin-top:10px;">Close</button>
-    </div>
-</div>
-
-<script>
-    const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0mRZthUSCHV8oLPq-iSBbif7ie0DboVrZTUzWlIDjulZTHdSJEnQOhtOpFuZQQXzBaoAWQNjhAJBt/pub?gid=0&single=true&output=csv";
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwMTbbG8QR9kKer3NXmrE7byPtSUoyspin2Z9Cy6ghcwI7T6JSD5RyagP3h1MZwM5Rl/exec";
-    
-    let cloudItems = [];
-    let clickCount = 0;
-
-    function logoTrigger() {
-        clickCount++;
-        if (clickCount >= 10) { openModal('adminModal'); clickCount = 0; }
-        setTimeout(() => clickCount = 0, 5000); 
-    }
-
-    function getID(url) {
-        const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|shorts\/|embed\/|v\/))([\w-]{11})/);
-        return match ? match[1] : null;
-    }
-
-    // API BRIDGE LOGIC
-    function runMedia(url) {
-        const id = getID(url);
-        if (id) {
-            document.getElementById('main-frame').src = `./player.html?v=${id}&autoplay=1`;
-            window.scrollTo({top: 0, behavior: 'smooth'});
+            player = new YT.Player('player', playerConfig);
         }
-    }
 
-    async function syncData() {
-        try {
-            const res = await fetch(SHEET_CSV);
-            const text = await res.text();
-            const rows = text.split('\n').slice(1);
-            cloudItems = rows.map(r => {
-                const parts = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                return { name: parts[0].replace(/"/g, '').trim(), url: parts[1].replace(/"/g, '').trim() };
-            }).filter(i => i.url);
-            renderUI();
-        } catch(e) { renderUI(); }
-    }
-
-    function renderUI() {
-        const local = JSON.parse(localStorage.getItem('bp_local')) || [];
-        const container = document.getElementById('display-list');
-        const combined = [...local, ...cloudItems];
-        document.getElementById('count').innerText = `${combined.length} items`;
-        
-        container.innerHTML = combined.map((item) => `
-            <div class="item" onclick="runMedia('${item.url}')">
-                <div class="item-info"><h4>${item.name}</h4></div>
-                <button class="play-icon">▶</button>
-            </div>
-        `).join('');
-    }
-
-    function saveLocal() {
-        const name = document.getElementById('uName').value;
-        const url = document.getElementById('uUrl').value;
-        if (getID(url) && name) {
-            let list = JSON.parse(localStorage.getItem('bp_local')) || [];
-            list.unshift({ name, url });
-            localStorage.setItem('bp_local', JSON.stringify(list));
-            closeModals();
-            renderUI();
+        // 5. Force play when ready (sometimes needed for mobile WebView)
+        function onPlayerReady(event) {
+            event.target.playVideo();
         }
-    }
 
-    async function sendToCloud() {
-        const pass = document.getElementById('adminPass').value;
-        if (pass !== "blink") return alert("Wrong Password");
-        
-        await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({ name: document.getElementById('aName').value, url: document.getElementById('aUrl').value, password: pass })
-        });
-        alert("Official Sheet Updated!");
-        location.reload();
-    }
-
-    function playRandom() {
-        const total = [...cloudItems, ...(JSON.parse(localStorage.getItem('bp_local')) || [])];
-        if (total.length) runMedia(total[Math.floor(Math.random() * total.length)].url);
-    }
-
-    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
-    window.onload = syncData;
-</script>
+        function onPlayerError(event) {
+            console.error("YouTube Player Error:", event.data);
+        }
+    </script>
 </body>
 </html>
